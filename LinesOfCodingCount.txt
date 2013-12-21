@@ -1,0 +1,4 @@
+Target = 5000
+Done so far = 0
+
+End of Dec 20 => 
