@@ -1,7 +1,10 @@
 ==================================
 Target = 5000
-Done so far = 0
+Done so far = 500
+
+TODO TARGET = 4500
+
 Only 10 days left
 ==================================
 
-End of Dec 20 => 
+End of Dec 20 => 500
