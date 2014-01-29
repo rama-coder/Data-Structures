@@ -1,22 +1,34 @@
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentSkipListSet;
 
-/**
- * Created with IntelliJ IDEA.
- * User: RAGA
- * Date: 12/13/13
- * Time: 7:52 PM
- * To change this template use File | Settings | File Templates.
- */
 public class ForestGraph {
-    public ForestGraph() {
-        adjListMap = new ConcurrentHashMap<String, CopyOnWriteArraySet<String>>();
+
+        public ForestGraph() {
+            this(false);
+        }
+
+        public ForestGraph(boolean isDirected) {
+        adjListMap = new ConcurrentHashMap<String, ConcurrentSkipListSet<String>>();
+        vertexMap = new ConcurrentHashMap<String, Vertex>();
+        directed = isDirected;
     }
 
     public void addEdge(String c1, String c2)
     {
         System.out.println("Adding edge between " + c1 + " and " + c2);
+
+        if ( ! vertexMap.containsKey(c1))
+        {
+               Vertex v1 = new Vertex(c1);
+               vertexMap.put(c1, v1);
+        }
+
+        if ( ! vertexMap.containsKey(c2))
+        {
+            Vertex v2 = new Vertex(c2);
+            vertexMap.put(c2, v2);
+        }
 
         if (adjListMap.containsKey(c1))
         {
@@ -27,23 +39,55 @@ public class ForestGraph {
         }
         else
         {
-            CopyOnWriteArraySet<String> vertexList1 = new CopyOnWriteArraySet<String>();
+            ConcurrentSkipListSet<String> vertexList1 = new ConcurrentSkipListSet<String>();
             vertexList1.add(c2);
             adjListMap.put(c1, vertexList1);
         }
 
-        if (adjListMap.containsKey(c2))
+        if ( ! directed)
         {
-            if (adjListMap.get(c2).contains(c1))
-                throw new IllegalArgumentException("Given edge between "+ c2 + " and " + c1 + " is a duplicate edge.");
+            if (adjListMap.containsKey(c2))
+            {
+                if (adjListMap.get(c2).contains(c1))
+                    throw new IllegalArgumentException("Given edge between "+ c2 + " and " + c1 + " is a duplicate edge.");
 
-            adjListMap.get(c2).add(c1);
+                adjListMap.get(c2).add(c1);
+            }
+            else
+            {
+                ConcurrentSkipListSet<String> vertexList2 = new ConcurrentSkipListSet<String>();
+                vertexList2.add(c1);
+                adjListMap.put(c2, vertexList2);
+            }
         }
-        else
+    }
+
+    public void explore(String startVertexLabel) throws Exception
+    {
+        Vertex  startVertex = vertexMap.get(startVertexLabel);
+
+        if (startVertex == null)
         {
-            CopyOnWriteArraySet<String> vertexList2 = new CopyOnWriteArraySet<String>();
-            vertexList2.add(c1);
-            adjListMap.put(c2, vertexList2);
+            System.out.println("Given startVertex " + startVertexLabel + " not found");
+        }
+
+        System.out.println("Reached node " + startVertexLabel);
+
+        startVertex.setVisited(true);
+
+        ConcurrentSkipListSet<String> adjVertexList = adjListMap.get(startVertexLabel);
+
+        if (adjVertexList == null)
+            return;
+
+        for(String adjVertexLabel:adjVertexList)
+        {
+            Vertex adjVertex = vertexMap.get(adjVertexLabel);
+
+            if (! adjVertex.getVisited())
+            {
+                  explore(adjVertexLabel);
+            }
         }
     }
 
@@ -51,10 +95,10 @@ public class ForestGraph {
     {
         System.out.println("Printing the graph ....");
 
-        for (Map.Entry<String, CopyOnWriteArraySet<String>> entry : adjListMap.entrySet())
+        for (Map.Entry<String, ConcurrentSkipListSet<String>> entry : adjListMap.entrySet())
         {
             String key = entry.getKey();
-            CopyOnWriteArraySet<String> list = entry.getValue();
+            ConcurrentSkipListSet<String> list = entry.getValue();
 
             System.out.println("Printing the adjacent list of node " + key);
             System.out.println("Size of the list is " + list.size());
@@ -68,9 +112,9 @@ public class ForestGraph {
         System.out.println("Graph has been printed.");
     }
 
-    public static void main(String[] args)
+    public static void main(String[] args) throws Exception
     {
-        ForestGraph graph = new ForestGraph();
+        ForestGraph graph = new ForestGraph(true);
 
         graph.addEdge("A", "B");
         graph.addEdge("A", "C");
@@ -88,8 +132,36 @@ public class ForestGraph {
 //        graph.addEdge("K", "L");
 
         graph.print();
+        graph.explore("A");
     }
 
-    ConcurrentHashMap<String, CopyOnWriteArraySet<String>> adjListMap;
+    ConcurrentHashMap<String, ConcurrentSkipListSet<String>> adjListMap;
+    ConcurrentHashMap<String, Vertex> vertexMap;
+    boolean directed;
+}
+
+class Vertex
+{
+    String label;
+    boolean isVisited;
+
+    public Vertex(String nodeValue)
+    {
+        label = nodeValue;
+    }
+
+    public String getLabel()
+    {
+        return label;
+    }
+    public boolean getVisited()
+    {
+        return isVisited;
+    }
+
+    public void setVisited(boolean visited)
+    {
+        isVisited = visited;
+    }
 }
 
