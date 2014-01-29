@@ -91,6 +91,20 @@ public class ForestGraph {
         }
     }
 
+    public void dfs() throws Exception
+    {
+        System.out.println("DFS traversing ...");
+
+        for(Map.Entry<String, Vertex> entry:vertexMap.entrySet())
+        {
+            String key = entry.getKey();
+            Vertex v = entry.getValue();
+
+            if ( ! v.getVisited())
+                explore(v.getLabel());
+        }
+    }
+
     public void print()
     {
         System.out.println("Printing the graph ....");
@@ -128,11 +142,11 @@ public class ForestGraph {
 //        graph.addEdge("E", "I");
 //        graph.addEdge("E", "J");
 //
-//        graph.addEdge("I", "J");
+        graph.addEdge("I", "J");
 //        graph.addEdge("K", "L");
 
         graph.print();
-        graph.explore("A");
+        graph.dfs();
     }
 
     ConcurrentHashMap<String, ConcurrentSkipListSet<String>> adjListMap;
