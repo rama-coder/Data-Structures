@@ -1,6 +1,16 @@
 import java.util.Map;
+import java.util.Scanner;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+
+// Implements a graph using adjacency lists
+// Uses map of string and skip list set to maintain mapping from vertex label to sorted list of adjacent vertices
+// Uses map of string and vertex object to maintain mapping from vertex label to vertex properties
+
+// 1. Implements dfs and explore
+// 2. Determines connected component for undirected graphs
+// 3. Determines pre and post order visits for each vertex
+// 4. Checks if the given vertex is a tree edge / forward edge or back edge or cross edge
 
 public class ForestGraph {
 
@@ -71,24 +81,28 @@ public class ForestGraph {
             System.out.println("Given startVertex " + startVertexLabel + " not found");
         }
 
-        System.out.println("Reached node " + startVertexLabel);
+        startVertex.setPreVisit(visit++);
+//        System.out.println("Reached node " + startVertexLabel + " with pre visit " + startVertex.getPreVisit());
 
         startVertex.setVisited(true);
-
+        startVertex.setConnectCompNumber(ccNum);
         ConcurrentSkipListSet<String> adjVertexList = adjListMap.get(startVertexLabel);
 
-        if (adjVertexList == null)
-            return;
-
-        for(String adjVertexLabel:adjVertexList)
+        if (adjVertexList != null)
         {
-            Vertex adjVertex = vertexMap.get(adjVertexLabel);
-
-            if (! adjVertex.getVisited())
+            for(String adjVertexLabel:adjVertexList)
             {
-                  explore(adjVertexLabel);
+                Vertex adjVertex = vertexMap.get(adjVertexLabel);
+
+                if (! adjVertex.getVisited())
+                {
+                    explore(adjVertexLabel);
+                }
             }
         }
+
+        startVertex.setPostVisit(visit++);
+//        System.out.println("Exited node " + startVertexLabel + " with post visit " + startVertex.getPostVisit());
     }
 
     public void dfs() throws Exception
@@ -97,11 +111,28 @@ public class ForestGraph {
 
         for(Map.Entry<String, Vertex> entry:vertexMap.entrySet())
         {
-            String key = entry.getKey();
+            entry.getValue().setVisited(false);
+        }
+
+        for(Map.Entry<String, Vertex> entry:vertexMap.entrySet())
+        {
             Vertex v = entry.getValue();
 
             if ( ! v.getVisited())
+            {
+                System.out.println("Calling explore from dfs on " + v.getLabel());
+
+                v.setConnectCompNumber(ccNum++);
                 explore(v.getLabel());
+            }
+        }
+
+        for(Map.Entry<String, Vertex> entry:vertexMap.entrySet())
+        {
+            String key = entry.getKey();
+            Vertex vertex = entry.getValue();
+
+            System.out.println("(Pre-Visit,Post-Visit) of " + key + " => (" + vertex.getPreVisit() + "," + vertex.getPostVisit() + ")");
         }
     }
 
@@ -126,9 +157,36 @@ public class ForestGraph {
         System.out.println("Graph has been printed.");
     }
 
+    public String getEdgeType(String startVertex, String endVertex)
+    {
+        Vertex v1 = vertexMap.get(startVertex);
+        Vertex v2 = vertexMap.get(endVertex);
+
+        if (v1 == null || v2 == null)
+        {
+            System.out.println("*******  ERROR => One or both of the vertex not found  *********");
+            return "Invalid Edge";
+        }
+
+        int v1Pre = v1.getPreVisit();
+        int v1Post = v1.getPostVisit();
+        int v2Pre = v2.getPreVisit();
+        int v2Post = v2.getPostVisit();
+
+        if ( v1Pre < v2Pre && v2Post < v1Post )
+            return "Tree Edge";
+
+        if (v2Pre < v1Pre && v1Post < v2Post )
+            return "Back Edge";
+
+        return "Cross Edge";
+
+    }
+
     public static void main(String[] args) throws Exception
     {
-        ForestGraph graph = new ForestGraph(true);
+        // If digraph, pass true
+        ForestGraph graph = new ForestGraph(false);
 
         graph.addEdge("A", "B");
         graph.addEdge("A", "C");
@@ -147,17 +205,70 @@ public class ForestGraph {
 
         graph.print();
         graph.dfs();
+
+        Scanner scan = new Scanner(System.in);
+
+        while (true)
+        {
+            System.out.println("*** Finding edge type ***");
+            System.out.println("Enter first vertex label (enter quit to exit)");
+            String s1 = scan.nextLine();
+
+            if (s1 == null || s1.length()==0 || s1.equalsIgnoreCase("quit"))
+                break;
+
+            System.out.println("Enter second vertex label (enter quit to exit)");
+            String s2 = scan.nextLine();
+
+            if (s2 == null || s2.length()==0 || s2.equalsIgnoreCase("quit"))
+                break;
+
+            System.out.println("*** Edge type of " + s1 + " => " + s2 + " = " + graph.getEdgeType(s1, s2));
+        }
+
     }
 
     ConcurrentHashMap<String, ConcurrentSkipListSet<String>> adjListMap;
     ConcurrentHashMap<String, Vertex> vertexMap;
     boolean directed;
+    int ccNum, visit;
+
+    private static final int TREE_EDGE = 1;
+    private static final int BACK_EDGE = 2;
+    private static final int CROSS_EDGE = 3;
 }
 
 class Vertex
 {
     String label;
     boolean isVisited;
+    int connectCompNumber;
+    int preVisit;
+    int postVisit;
+
+    int getPostVisit() {
+        return postVisit;
+    }
+
+    void setPostVisit(int postVisit) {
+        this.postVisit = postVisit;
+    }
+
+    int getPreVisit() {
+        return preVisit;
+    }
+
+    void setPreVisit(int preVisit) {
+        this.preVisit = preVisit;
+    }
+
+    int getConnectCompNumber() {
+        return connectCompNumber;
+    }
+
+    void setConnectCompNumber(int connectCompNumber) {
+        this.connectCompNumber = connectCompNumber;
+    }
 
     public Vertex(String nodeValue)
     {
@@ -178,4 +289,3 @@ class Vertex
         isVisited = visited;
     }
 }
-
